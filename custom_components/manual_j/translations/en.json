@@ -1,0 +1,85 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Manual J",
+        "description": "What a part in House Structure that gives no value of its own is taken to be, and the outdoor sensor the design temperatures come from.",
+        "data": {
+          "outdoor_entity": "Outdoor temperature sensor",
+          "infiltration_ach": "Air leakage (air changes per hour)",
+          "wall_r": "Outside wall R-value (imperial)",
+          "roof_r": "Roof R-value (imperial)",
+          "door_r": "Outside door R-value (imperial)",
+          "basement_floor_r": "Basement floor R-value (imperial)"
+        },
+        "data_description": {
+          "outdoor_entity": "The design temperatures come from its recorded hourly means over the last two years. Without one, assumed design temperatures for Edmonton are used.",
+          "infiltration_ach": "Natural air changes per hour, for the loads. Leave empty for 0.35, a fairly tight house; an older house is often 0.5 to 0.7. From a blower-door test, roughly ACH50 divided by 20.",
+          "wall_r": "The effective R-value of the outside walls, studs included (R-20 batts in 2x6 framing are about R-15 overall). Leave empty for R-20. A wall part in House Structure with its own R-value keeps it.",
+          "roof_r": "The effective R-value of the ceilings under the roof. Leave empty for R-35. A roof part with its own R-value keeps it.",
+          "door_r": "The R-value of the doors to outside, with their frames. Leave empty for R-3, an insulated steel or solid wood door. A glass patio door is better entered as a window in House Structure.",
+          "basement_floor_r": "The basement slab and the soil under it, as one effective R-value against the design ground temperature. Leave empty for R-11, an uninsulated slab."
+        }
+      },
+      "reconfigure": {
+        "title": "Manual J",
+        "description": "What would you like to change?",
+        "menu_options": {
+          "settings": "The outdoor sensor and the envelope",
+          "building": "A detached building's indoor temperatures"
+        }
+      },
+      "settings": {
+        "title": "Manual J",
+        "description": "What a part in House Structure that gives no value of its own is taken to be, and the outdoor sensor the design temperatures come from.",
+        "data": {
+          "outdoor_entity": "Outdoor temperature sensor",
+          "infiltration_ach": "Air leakage (air changes per hour)",
+          "wall_r": "Outside wall R-value (imperial)",
+          "roof_r": "Roof R-value (imperial)",
+          "door_r": "Outside door R-value (imperial)",
+          "basement_floor_r": "Basement floor R-value (imperial)"
+        },
+        "data_description": {
+          "outdoor_entity": "The design temperatures come from its recorded hourly means over the last two years. Without one, assumed design temperatures for Edmonton are used.",
+          "infiltration_ach": "Natural air changes per hour, for the loads. Leave empty for 0.35, a fairly tight house; an older house is often 0.5 to 0.7. From a blower-door test, roughly ACH50 divided by 20.",
+          "wall_r": "The effective R-value of the outside walls, studs included (R-20 batts in 2x6 framing are about R-15 overall). Leave empty for R-20. A wall part in House Structure with its own R-value keeps it.",
+          "roof_r": "The effective R-value of the ceilings under the roof. Leave empty for R-35. A roof part with its own R-value keeps it.",
+          "door_r": "The R-value of the doors to outside, with their frames. Leave empty for R-3, an insulated steel or solid wood door. A glass patio door is better entered as a window in House Structure.",
+          "basement_floor_r": "The basement slab and the soil under it, as one effective R-value against the design ground temperature. Leave empty for R-11, an uninsulated slab."
+        }
+      },
+      "building": {
+        "title": "Detached building",
+        "description": "The detached buildings come from House Structure.",
+        "data": {
+          "building": "Building"
+        }
+      },
+      "setpoints": {
+        "title": "Indoor temperatures: {building}",
+        "description": "The indoor design temperatures for {building}, a detached building in House Structure. Its rooms are sized on their own, at these temperatures. Leave both empty to use the house's.",
+        "data": {
+          "indoor_heat_c": "Indoor temperature for heating (°C)",
+          "indoor_cool_c": "Indoor temperature for cooling (°C)"
+        },
+        "data_description": {
+          "indoor_heat_c": "Leave empty to use the house's design indoor temperature.",
+          "indoor_cool_c": "Leave empty to use the house's design indoor temperature."
+        }
+      }
+    },
+    "error": {
+      "invalid_infiltration_ach": "Must be more than 0.",
+      "invalid_wall_r": "Must be more than 0.",
+      "invalid_roof_r": "Must be more than 0.",
+      "invalid_door_r": "Must be more than 0.",
+      "invalid_basement_floor_r": "Must be more than 0.",
+      "invalid_indoor_cool_c": "The cooling temperature must be above the heating one."
+    },
+    "abort": {
+      "single_instance_allowed": "Manual J is already set up.",
+      "reconfigure_successful": "Saved."
+    }
+  }
+}
