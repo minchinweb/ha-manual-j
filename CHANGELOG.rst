@@ -3,6 +3,7 @@ Changelog
 
 .. release:: unreleased
 
+  - :support:`-` The install button and steps use Home Assistant 2026.11's **Marketplace**, which replaced HACS; HACS (before 2026.11) and copying by hand are still described.
   - :feature:`-` Without an outdoor sensor (or with too short a record), the design temperatures come from the **historical weather** at the home location: ten years of hourly temperature and dew point from Open-Meteo's archive, downloaded in the background on setup and kept until the location moves or a year ends. The dew points give the **cooling design humidity**. Edmonton's fixed values are now only the last resort.
   - :feature:`-` The **altitude** is Home Assistant's elevation, not Edmonton's.
   - :feature:`-` **Manual J, S and D**, moved from Home Thermal Lab's Loads tab into an integration of their own, with each manual in its own file (``manual_j.py``, ``manual_s.py``, ``manual_d.py``; ``air.py`` and ``building.py`` for what they share, ``project.py`` to run them together).
