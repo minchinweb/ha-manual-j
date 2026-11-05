@@ -9,9 +9,12 @@ import pytest
 
 from custom_components.manual_j.building import Design
 from custom_components.manual_j.house_model import (
+    R_20_SI,
+    R_35_SI,
     R_IP_TO_SI,
     Nominal,
     build_project,
+    default_r_values,
     envelope_from_fit,
     nominal_from_settings,
     room_capacities,
@@ -538,3 +541,12 @@ def test_no_settings_say_everything_is_a_default():
     nominal, note = nominal_from_settings({})
     assert nominal == Nominal()
     assert "air leakage 0.35 ACH" in note.split("Built-in defaults")[1]
+
+
+def test_default_r_values_are_the_settings_or_the_built_in_ones():
+    built_in = default_r_values({})
+    assert built_in["wall_r"] == pytest.approx(R_20_SI)
+    assert built_in["roof_r"] == pytest.approx(R_35_SI)
+    typed = default_r_values({"wall_r": 22})  # an imperial R-value
+    assert typed["wall_r"] == pytest.approx(22 * R_IP_TO_SI)
+    assert typed["roof_r"] == pytest.approx(R_35_SI)

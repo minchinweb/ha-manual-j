@@ -15,6 +15,9 @@ NEEDS = "house_structure_needs"
 NEEDS_EVENT = "house_structure_needs_updated"
 # the sizes Manual J calculates from, so House Structure asks for them
 NEEDED = ("wall_size", "roof_size", "room_floor")
+# its R-values for a wall, roof or outside door with none typed, for House
+# Structure's drawings (hass.data[DEFAULTS][DOMAIN]: title and r_values)
+DEFAULTS = "house_structure_defaults"
 
 # Home Thermal Lab's fitted cooling rates, when it is installed
 FITTED = "home_thermal_lab_fitted"

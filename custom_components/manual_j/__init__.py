@@ -26,8 +26,18 @@ from __future__ import annotations
 
 from homeassistant.helpers import config_validation as cv
 
-from .constants import DOMAIN, NEEDED, NEEDS, NEEDS_EVENT, TAB_KEY, TABS, TABS_EVENT
+from .constants import (
+    DEFAULTS,
+    DOMAIN,
+    NEEDED,
+    NEEDS,
+    NEEDS_EVENT,
+    TAB_KEY,
+    TABS,
+    TABS_EVENT,
+)
 from .downloads import downloaded_summary
+from .house_model import default_r_values
 from .panel import async_register, tab
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -39,6 +49,19 @@ async def async_setup(hass, config) -> bool:
     return True
 
 
+def _publish_defaults(hass, entry) -> None:
+    """Publish the R-values used where a part has none typed, for House Structure."""
+    hass.data.setdefault(DEFAULTS, {})[DOMAIN] = {
+        "title": entry.title,
+        "r_values": default_r_values(dict(entry.data)),
+    }
+
+
+async def _settings_changed(hass, entry) -> None:
+    """Publish the R-values again when the settings change."""
+    _publish_defaults(hass, entry)
+
+
 async def async_setup_entry(hass, entry) -> bool:
     """Add the tab, and say which of House Structure's sizes are needed."""
     hass.data.setdefault(TABS, {})[TAB_KEY] = await tab(hass)
@@ -48,6 +71,8 @@ async def async_setup_entry(hass, entry) -> bool:
         "needs": list(NEEDED),
     }
     hass.bus.async_fire(NEEDS_EVENT)
+    _publish_defaults(hass, entry)
+    entry.async_on_unload(entry.add_update_listener(_settings_changed))
     # the historical weather, so the tab has it on first opening
     entry.async_create_background_task(
         hass, downloaded_summary(hass), f"{DOMAIN} historical weather"
@@ -60,5 +85,6 @@ async def async_unload_entry(hass, entry) -> bool:
     hass.data.get(TABS, {}).pop(TAB_KEY, None)
     hass.bus.async_fire(TABS_EVENT)
     hass.data.get(NEEDS, {}).pop(DOMAIN, None)
+    hass.data.get(DEFAULTS, {}).pop(DOMAIN, None)
     hass.bus.async_fire(NEEDS_EVENT)
     return True

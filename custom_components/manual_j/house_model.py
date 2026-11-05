@@ -106,6 +106,17 @@ ENVELOPE_SETTINGS = (
 )
 
 
+def default_r_values(settings: Mapping) -> dict[str, float]:
+    """Manual J's R-values, in m² K/W, for a wall, roof and outside door that has
+    none typed in House Structure: the settings' values, else the built-in ones."""
+    nominal, _ = nominal_from_settings(settings)
+    return {
+        "wall_r": nominal.wall_r,
+        "roof_r": nominal.roof_r,
+        "door_r": nominal.door_r,
+    }
+
+
 def nominal_from_settings(settings: Mapping) -> tuple[Nominal, str]:
     """The envelope defaults from the integration's settings, and a note of them.
 
