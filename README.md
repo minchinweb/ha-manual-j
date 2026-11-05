@@ -59,7 +59,9 @@ One entry, with no sub-entries. All of its settings are optional.
   used. The tab says which it used.
 - **Envelope defaults**: air leakage (air changes per hour) and the R-values
   of outside walls, roofs, outside doors and the basement floor. A House
-  Structure part with its own R-value keeps it; these fill in the rest.
+  Structure part with its own R-value keeps it; these fill in the rest. For
+  what each one means and what to enter from a blower-door or energy report,
+  see [the setup guide](docs/manual-j-setup.md).
 - **Detached buildings** (on Reconfigure, once House Structure has one): the
   indoor heating and cooling design temperatures for a building, such as a
   garage kept at 10 °C. Its rooms are sized on their own, at those

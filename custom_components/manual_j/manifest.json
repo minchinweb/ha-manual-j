@@ -14,7 +14,7 @@
     "recorder",
     "websocket_api"
   ],
-  "documentation": "https://github.com/minchinweb/ha-manual-j",
+  "documentation": "https://github.com/minchinweb/ha-manual-j/blob/master/docs/manual-j-setup.md",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/minchinweb/ha-manual-j/issues",
