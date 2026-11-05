@@ -80,6 +80,11 @@ The numbers are worked out each time the tab asks (the `manual_j/loads`
 websocket command), so they follow changes in House Structure. The recorded
 outdoor record is kept until the hour changes.
 
+## Someday
+
+Ideas not yet planned are in `docs/someday.md`. The first is Manual T:
+choosing the supply registers by their throw, face velocity and placement.
+
 ## Development
 
 ```
