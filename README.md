@@ -32,8 +32,14 @@ conditioner and detached buildings are all House Structure parts.
 Without HACS, copy `custom_components/manual_j/` into Home Assistant's
 `custom_components/` folder and restart.
 
-It needs Home Assistant 2025.3 or later. It fetches nothing from the internet
-and switches nothing.
+It needs Home Assistant 2025.3 or later. It switches nothing. It downloads the
+historical weather for the home location from
+[Open-Meteo](https://open-meteo.com/) (no key needed) once, and again only
+when the location moves or a year ends (see below).
+
+After downloading it with HACS, **restart Home Assistant** before adding the
+integration. Until then Home Assistant doesn't know it's there, and the
+**Add integration** link says it "does not support configuration via the UI".
 
 ## Settings
 
@@ -42,8 +48,11 @@ One entry, with no sub-entries. All of its settings are optional.
 - **Outdoor temperature sensor**: the design temperatures come from its
   recorded hourly means over the last two years: the temperature exceeded in
   99.6% of hours for heating, and in 0.4% for cooling. Without one, or with
-  too short a record, assumed design temperatures for Edmonton are used, and
-  the tab says so.
+  too short a record, they come from the **historical weather** at the home
+  location: the last ten whole years of hourly temperatures from Open-Meteo's
+  archive (reanalysis data, so about a 10 km grid, not a weather station).
+  Only if that can't be downloaded are fixed design temperatures for Edmonton
+  used. The tab says which it used.
 - **Envelope defaults**: air leakage (air changes per hour) and the R-values
   of outside walls, roofs, outside doors and the basement floor. A House
   Structure part with its own R-value keeps it; these fill in the rest.
@@ -51,6 +60,10 @@ One entry, with no sub-entries. All of its settings are optional.
   indoor heating and cooling design temperatures for a building, such as a
   garage kept at 10 °C. Its rooms are sized on their own, at those
   temperatures. A building without them uses the house's.
+
+The **cooling design humidity** comes from the same download's dew points
+(the hours as hot as the cooling design), and the **altitude** from Home
+Assistant's elevation (Settings → System → General).
 
 When Manual J is installed, House Structure starts raising a repair for any
 wall or roof without a size, and any room without a floor area, since the

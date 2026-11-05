@@ -8,10 +8,17 @@ Structure's ``tab.js`` for the connection and theme. It asks
 what House Structure publishes at that moment, so they follow its changes.
 The slow part, the recorder's two years of hourly outdoor means, is kept until
 the hour changes.
+
+The design temperatures come from, in order: the outdoor sensor's record, if
+it is long enough; the historical weather at the home location, downloaded
+from Open-Meteo (``downloads.py``); the assumed values. The downloaded dew
+points give the cooling design humidity whichever temperatures are used. The
+altitude is Home Assistant's elevation.
 """
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 import hashlib
 import logging
@@ -36,8 +43,17 @@ from .constants import (
     TAB_ORDER,
     TAB_TITLE,
 )
+from .downloads import downloaded_summary, years
+from .history import SOURCE_NOTE
 from .house_model import nominal_from_settings
-from .loads import HUMIDITY_NOTE, assemble_all, design_from_record, equipment_from
+from .loads import (
+    HUMIDITY_NOTE,
+    assemble_all,
+    assumed_design,
+    design_from_record,
+    design_from_summary,
+    equipment_from,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -128,6 +144,43 @@ async def _cached_hourly_outdoor(
     return list(values)
 
 
+async def _design(
+    hass: HomeAssistant, settings: dict
+) -> tuple[Design, dict, list[str]]:
+    """The design conditions, the summary of where they came from, and notes."""
+    base = Design(altitude_m=float(hass.config.elevation or 0))
+    notes: list[str] = []
+    design, info = base, None
+    if settings.get(OUTDOOR_ENTITY):
+        end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+        hourly: list[float | None] = [None] * LOADS_HOURS
+        try:
+            hourly = await _cached_hourly_outdoor(hass, settings[OUTDOOR_ENTITY], end)
+        except Exception:  # then the downloaded or assumed design is used
+            _LOGGER.debug("No hourly outdoor record", exc_info=True)
+        design, info = design_from_record(hourly, base)
+        if info["source"] != "recorded":
+            notes.append(
+                "The outdoor sensor's record is too short for the design "
+                "temperatures: " + " ".join(info["warnings"])
+            )
+            design, info = base, None
+    downloaded, why = await downloaded_summary(hass)
+    if info is None:
+        if downloaded is not None:
+            design, info = design_from_summary(downloaded, base, "downloaded")
+            info["years"] = years(downloaded)
+        else:
+            info = assumed_design(base, [why] if why else [])
+    elif downloaded is not None and downloaded.get("cool_outdoor_w") is not None:
+        design = replace(design, cool_outdoor_w=downloaded["cool_outdoor_w"])
+    if downloaded is not None:
+        notes.append(SOURCE_NOTE + ".")
+    if downloaded is None or downloaded.get("cool_outdoor_w") is None:
+        notes.append(HUMIDITY_NOTE)
+    return design, info, notes
+
+
 @websocket_api.websocket_command({vol.Required("type"): "manual_j/loads"})
 @websocket_api.async_response
 async def ws_loads(hass: HomeAssistant, connection, msg: dict) -> None:
@@ -141,20 +194,7 @@ async def ws_loads(hass: HomeAssistant, connection, msg: dict) -> None:
         )
         return
     settings = _settings(hass)
-    hourly: list[float | None] = [None] * LOADS_HOURS
-    notes: list[str] = []
-    if settings.get(OUTDOOR_ENTITY):
-        end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
-        try:
-            hourly = await _cached_hourly_outdoor(hass, settings[OUTDOOR_ENTITY], end)
-        except Exception:  # the design then stays the assumed one
-            _LOGGER.debug("No hourly outdoor record", exc_info=True)
-    else:
-        notes.append(
-            "No outdoor temperature sensor is set, so the design temperatures are "
-            "the assumed ones. Choose one on Manual J's Reconfigure form."
-        )
-    design, info = design_from_record(hourly, Design())
+    design, info, notes = await _design(hass, settings)
     areas = ar.async_get(hass)
     names = {}
     for area_id in rooms:
@@ -178,7 +218,7 @@ async def ws_loads(hass: HomeAssistant, connection, msg: dict) -> None:
             furnace=furnace,
             ac=ac,
             design_info=info,
-            extra_warnings=[*notes, envelope_note, HUMIDITY_NOTE, *equipment_notes],
+            extra_warnings=[*notes, envelope_note, *equipment_notes],
             ducts=structure.ducts(summary),
             furnace_room=furnace_area.name if furnace_area else None,
         )

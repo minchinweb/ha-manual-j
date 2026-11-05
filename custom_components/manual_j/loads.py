@@ -30,11 +30,58 @@ from .project import calculate
 
 # Without a sensible rating, the AC's sensible capacity is taken as this share.
 SENSIBLE_SHARE = 0.8
-# There's no dew point record, so cooling humidity is the default.
+# Without the downloaded dew points, cooling humidity is the default.
 HUMIDITY_NOTE = (
-    "Cooling humidity is the default outdoor humidity, not from the record: "
-    "Manual J reads no dew point history yet."
+    "Cooling humidity is the default outdoor humidity: the historical weather "
+    "(with its dew points) couldn't be downloaded."
 )
+
+
+def design_from_summary(
+    summary: dict, base: Design, source: str
+) -> tuple[Design, dict]:
+    """The design with the outdoor values worked out from a record.
+
+    Args:
+        summary: ``heat_outdoor_c``, ``cool_outdoor_c`` and, when known,
+            ``cool_outdoor_w`` (the cooling design humidity), with the
+            cross-checks, ``hours`` and ``warnings`` (see ``history.summarise``).
+        base: The assumed design conditions.
+        source: ``recorded`` (the outdoor sensor) or ``downloaded`` (Open-Meteo).
+
+    Returns:
+        The design to use, and the summary with ``source`` and ``assumed``.
+    """
+    changes = {
+        "heat_outdoor_c": summary["heat_outdoor_c"],
+        "cool_outdoor_c": summary["cool_outdoor_c"],
+    }
+    if summary.get("cool_outdoor_w") is not None:
+        changes["cool_outdoor_w"] = summary["cool_outdoor_w"]
+    info = {
+        **summary,
+        "source": source,
+        "assumed": {
+            "heat_outdoor_c": base.heat_outdoor_c,
+            "cool_outdoor_c": base.cool_outdoor_c,
+        },
+    }
+    return replace(base, **changes), info
+
+
+def assumed_design(base: Design, warnings: list[str], hours: int = 0) -> dict:
+    """The summary for the assumed design, with why it is used."""
+    return {
+        "source": "assumed",
+        "assumed": {
+            "heat_outdoor_c": base.heat_outdoor_c,
+            "cool_outdoor_c": base.cool_outdoor_c,
+        },
+        "heat_outdoor_c": base.heat_outdoor_c,
+        "cool_outdoor_c": base.cool_outdoor_c,
+        "hours": hours,
+        "warnings": list(warnings),
+    }
 
 
 def design_from_record(
@@ -53,27 +100,12 @@ def design_from_record(
         The design to use, and a summary: ``source`` (``recorded`` or
         ``assumed``), the temperatures, ``hours`` and ``warnings``.
     """
-    assumed = {
-        "heat_outdoor_c": base.heat_outdoor_c,
-        "cool_outdoor_c": base.cool_outdoor_c,
-    }
     try:
         found = design_temperatures(hourly_c)
     except ValueError as err:
-        return base, {
-            "source": "assumed",
-            "assumed": assumed,
-            "heat_outdoor_c": base.heat_outdoor_c,
-            "cool_outdoor_c": base.cool_outdoor_c,
-            "hours": sum(t is not None for t in hourly_c),
-            "warnings": [str(err)],
-        }
-    design = replace(
-        base, heat_outdoor_c=found["heat_c"], cool_outdoor_c=found["cool_c"]
-    )
-    return design, {
-        "source": "recorded",
-        "assumed": assumed,
+        hours = sum(t is not None for t in hourly_c)
+        return base, assumed_design(base, [str(err)], hours)
+    summary = {
         "heat_outdoor_c": found["heat_c"],
         "heat_outdoor_99_c": found["heat_c_99"],
         "cool_outdoor_c": found["cool_c"],
@@ -81,6 +113,7 @@ def design_from_record(
         "hours": found["hours"],
         "warnings": found["warnings"],
     }
+    return design_from_summary(summary, base, "recorded")
 
 
 def equipment_from(

@@ -72,7 +72,7 @@
 <body>
 <main>
   <div id="loads-error" class="banner hidden"></div>
-  <p id="loads-status" class="status hidden"><span class="spinner" aria-hidden="true"></span>Calculating from the recorded history…</p>
+  <p id="loads-status" class="status hidden"><span class="spinner" aria-hidden="true"></span>Calculating from the weather history…</p>
   <div id="loads-body">
   <section class="card">
     <h2>Design conditions</h2>
@@ -157,7 +157,7 @@ function verdictPill(verdict) {
 function drawDesign(d) {
   const dz = d.design;
   const info = dz.info || {};
-  const recorded = info.source === "recorded";
+  const recorded = info.source === "recorded" || info.source === "downloaded";
   const assumed = info.assumed || { heat_outdoor_c: dz.heat_outdoor_c, cool_outdoor_c: dz.cool_outdoor_c };
   const rows = [
     ["Heating outdoor (exceeded in 99.6% of hours)", fmt(assumed.heat_outdoor_c, 1, " °C"),
@@ -167,13 +167,17 @@ function drawDesign(d) {
       recorded ? fmt(info.cool_outdoor_c, 1, " °C") : "–",
       recorded ? "1%: " + fmt(info.cool_outdoor_1_c, 1, " °C") : "–"],
   ];
+  const hours = fmt(info.hours, 0);
+  const from = info.source === "downloaded"
+    ? `${hours} hours of historical weather at the home location, ${info.years} (Open-Meteo)`
+    : `${hours} hours of the outdoor sensor's record`;
   const note = recorded
-    ? `The design uses the recorded values, from ${info.hours} hours of outdoor temperature. The assumed values are the standard ones, for comparison.`
+    ? `The design uses the values from ${from}. The assumed values are Edmonton's, for comparison.`
     : "The design uses the assumed values: " + (info.warnings || []).join(" ");
   document.getElementById("design").replaceChildren(
-    tableOf(["Condition", "Assumed", "Recorded", "Cross-check"], rows),
+    tableOf(["Condition", "Assumed", info.source === "downloaded" ? "Historical" : "Recorded", "Cross-check"], rows),
     el("p", { class: "hint" }, note),
-    el("p", { class: "hint" }, `Indoors ${fmt(dz.heat_indoor_c, 0, " °C")} for heating and ${fmt(dz.cool_indoor_c, 0, " °C")} for cooling, at ${fmt(dz.altitude_m, 0, " m")} altitude.`));
+    el("p", { class: "hint" }, `Indoors ${fmt(dz.heat_indoor_c, 0, " °C")} for heating and ${fmt(dz.cool_indoor_c, 0, " °C")} for cooling, at ${fmt(dz.altitude_m, 0, " m")} altitude (Home Assistant's elevation).`));
 }
 
 // A room's name, with an "assumed sizes" pill when some of its sizes were filled in.

@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
+import aiohttp
 from homeassistant.config_entries import SOURCE_RECONFIGURE, SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import area_registry as ar
+from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import MockModule, mock_integration
 
@@ -42,6 +44,24 @@ def auto_enable_custom_integrations(
     return
 
 
+def _archive() -> dict:
+    """Two years of Open-Meteo's hours: -30 to +30 C, the dew point 10 K below."""
+    temps = [-30.0 + 60.0 * ((h // 24) % 365) / 365 for h in range(LOADS_HOURS)]
+    return {
+        "hourly": {"temperature_2m": temps, "dew_point_2m": [t - 10 for t in temps]}
+    }
+
+
+@pytest.fixture(autouse=True)
+def archive():
+    """Open-Meteo's historical weather, without the network."""
+    with patch(
+        "custom_components.manual_j.downloads.fetch_archive",
+        AsyncMock(return_value=_archive()),
+    ) as fetch:
+        yield fetch
+
+
 @pytest.fixture
 async def house(hass: HomeAssistant) -> dict:
     """House Structure (a stand-in), with an office, a garage and a furnace."""
@@ -69,6 +89,7 @@ async def house(hass: HomeAssistant) -> dict:
         "buildings": [{"id": "b1", "title": "Garage", "area_ids": [garage.id]}],
     }
     hass.data[STRUCTURE_DOMAIN] = summary
+    hass.config.elevation = 650
     return {"office": office.id, "garage": garage.id}
 
 
@@ -200,3 +221,39 @@ async def test_loads_without_rooms_say_so(
         "available": False,
         "reason": "House Structure has no rooms yet.",
     }
+
+
+async def _loads(hass: HomeAssistant, hass_ws_client) -> dict:
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "manual_j/loads"})
+    reply = await client.receive_json()
+    assert reply["success"], reply
+    return reply["result"]
+
+
+async def test_without_a_sensor_the_design_is_downloaded_once(
+    hass: HomeAssistant, house, hass_ws_client, archive
+) -> None:
+    await _set_up(hass)
+    result = await _loads(hass, hass_ws_client)
+    design = result["design"]
+    assert design["info"]["source"] == "downloaded"
+    assert design["info"]["years"].endswith(str(dt_util.now().year - 1))
+    assert design["heat_outdoor_c"] < -29
+    assert design["altitude_m"] == 650
+    assert any("Open-Meteo" in w for w in result["warnings"])
+    assert not any("default outdoor humidity" in w for w in result["warnings"])
+    await _loads(hass, hass_ws_client)
+    assert archive.await_count == 1  # set-up's download is kept
+
+
+async def test_a_failed_download_falls_back_to_the_assumed_design(
+    hass: HomeAssistant, house, hass_ws_client, archive
+) -> None:
+    archive.side_effect = aiohttp.ClientError("offline")
+    await _set_up(hass)
+    result = await _loads(hass, hass_ws_client)
+    info = result["design"]["info"]
+    assert info["source"] == "assumed"
+    assert "couldn't be downloaded" in info["warnings"][0]
+    assert any("default outdoor humidity" in w for w in result["warnings"])

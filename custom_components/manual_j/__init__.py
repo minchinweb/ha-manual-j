@@ -10,6 +10,8 @@ Set up from the web interface only (see ``config_flow.py``). It depends on
 House Structure, which Home Assistant then sets up first. On setup it:
 
 - adds the HVAC design tab (``hass.data["house_structure_tabs"]``);
+- starts downloading the historical weather for the design temperatures
+  (``downloads.py``), if it hasn't already;
 - tells House Structure which sizes it calculates from
   (``hass.data["house_structure_needs"]``), so a wall without a size raises a
   repair once Manual J is installed, and not before.
@@ -25,6 +27,7 @@ from __future__ import annotations
 from homeassistant.helpers import config_validation as cv
 
 from .constants import DOMAIN, NEEDED, NEEDS, NEEDS_EVENT, TAB_KEY, TABS, TABS_EVENT
+from .downloads import downloaded_summary
 from .panel import async_register, tab
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -45,6 +48,10 @@ async def async_setup_entry(hass, entry) -> bool:
         "needs": list(NEEDED),
     }
     hass.bus.async_fire(NEEDS_EVENT)
+    # the historical weather, so the tab has it on first opening
+    entry.async_create_background_task(
+        hass, downloaded_summary(hass), f"{DOMAIN} historical weather"
+    )
     return True
 
 
