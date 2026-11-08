@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="custom_components/manual_j/brand/dark_logo@2x.png">
+  <img alt="Manual J" src="custom_components/manual_j/brand/logo@2x.png" height="64">
+</picture>
+
 # Manual J
 
 A Home Assistant integration that sizes a house's heating and cooling: Manual
